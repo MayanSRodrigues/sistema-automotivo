@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoStock — Gestão de Veículos</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #111318;
+    --card:     #16191f;
+    --border:   #23272f;
+    --accent:   #4f8ef7;
+    --accent2:  #7c5cfc;
+    --green:    #22c55e;
+    --yellow:   #f59e0b;
+    --red:      #ef4444;
+    --blue:     #38bdf8;
+    --text:     #f0f2f5;
+    --muted:    #6b7280;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SIDEBAR ─────────────────────────────────────────────── */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--font-head);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo span { color: var(--accent); }
+
+  .nav { padding: 20px 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 500;
+    transition: all .18s;
+    border: none; background: none; width: 100%; text-align: left;
+    font-family: var(--font-body); font-size: 14px;
+  }
+  .nav-item:hover { background: var(--card); color: var(--text); }
+  .nav-item.active { background: rgba(79,142,247,.13); color: var(--accent); }
+  .nav-item svg { flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── MAIN ────────────────────────────────────────────────── */
+  .main {
+    margin-left: 220px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 50;
+  }
+
+  .page-title {
+    font-family: var(--font-head);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    font-family: var(--font-body);
+    transition: all .18s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7ae8; }
+  .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-danger { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+  .btn-danger:hover { background: rgba(239,68,68,.25); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  .content { padding: 28px 32px; flex: 1; }
+
+  /* ── STATS ───────────────────────────────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-family: var(--font-head); font-size: 28px; font-weight: 700; }
+  .stat-sub { font-size: 12px; color: var(--muted); }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
+  /* ── FILTROS ─────────────────────────────────────────────── */
+  .filter-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .filter-group { display: flex; flex-direction: column; gap: 5px; }
+  .filter-group label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .4px; }
+
+  input, select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: var(--font-body);
+    outline: none;
+    transition: border-color .18s;
+    height: 36px;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+  select option { background: var(--surface); }
+
+  .filter-group input { width: 130px; }
+  .filter-group select { width: 140px; }
+  #search-input { width: 200px; }
+
+  /* ── TABELA ──────────────────────────────────────────────── */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; }
+  .table-count { font-size: 12px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,.025); }
+  tbody td { padding: 13px 16px; font-size: 13px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-green  { background: rgba(34,197,94,.15);  color: var(--green); }
+  .badge-red    { background: rgba(239,68,68,.15);  color: var(--red); }
+  .badge-yellow { background: rgba(245,158,11,.15); color: var(--yellow); }
+  .badge-blue   { background: rgba(56,189,248,.15); color: var(--blue); }
+
+  .actions { display: flex; gap: 6px; }
+
+  .price { font-family: var(--font-head); font-weight: 600; color: var(--accent); }
+  .model-name { font-weight: 500; }
+  .brand-name { font-size: 11px; color: var(--muted); }
+
+  /* ── MODAL ───────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(16px);
+    transition: transform .2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title { font-family: var(--font-head); font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .form-group input, .form-group select { width: 100%; height: 40px; }
+
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* ── LOADING / EMPTY ─────────────────────────────────────── */
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+  /* ── TOAST ───────────────────────────────────────────────── */
+  .toast-container {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 300;
+  }
+  .toast {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+    animation: slideIn .25s ease;
+    min-width: 240px;
+  }
+  .toast.success { border-color: rgba(34,197,94,.4); }
+  .toast.error   { border-color: rgba(239,68,68,.4); }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* ── SEÇÕES ──────────────────────────────────────────────── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-title {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .section-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+  /* ── API STATUS ──────────────────────────────────────────── */
+  .api-status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--muted);
+  }
+  .api-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted);
+    transition: background .3s;
+  }
+  .api-dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .api-dot.offline { background: var(--red); }
+
+  .brand-tag {
+    display: inline-block;
+    background: rgba(79,142,247,.1);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">Auto<span>Stock</span></div>
+  <nav class="nav">
+    <button class="nav-item active" onclick="showSection('veiculos', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2"/><circle cx="8.5" cy="17.5" r="2.5"/><circle cx="15.5" cy="17.5" r="2.5"/></svg>
+      Veículos
+    </button>
+    <button class="nav-item" onclick="showSection('marcas', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      Marcas
+    </button>
+    <button class="nav-item" onclick="showSection('modelos', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Modelos
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="api-status">
+      <div class="api-dot" id="api-dot"></div>
+      <span id="api-status-text">Verificando API...</span>
+    </div>
+    <div style="margin-top:6px;font-size:11px;">localhost:8080</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Veículos</div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" id="btn-novo" onclick="abrirModal()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Veículo
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── SEÇÃO VEÍCULOS ──────────────────────────────────── -->
+    <section class="section active" id="sec-veiculos">
+      <div class="section-title">Estoque de Veículos</div>
+      <div class="section-sub">Gerencie todos os veículos cadastrados no sistema</div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-sub">veículos cadastrados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Disponíveis</div>
+          <div class="stat-value" style="color:var(--green)" id="stat-disp">—</div>
+          <div class="stat-sub"><span class="stat-dot" style="background:var(--green)"></span>prontos para venda</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Vendidos</div>
+          <div class="stat-value" style="color:var(--red)" id="stat-vend">—</div>
+          <div class="stat-sub"><span class="stat-dot" style="background:var(--red)"></span>fora do estoque</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Ticket Médio</div>
+          <div class="stat-value" style="color:var(--accent)" id="stat-medio">—</div>
+          <div class="stat-sub">valor médio disponível</div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Buscar</label>
+          <input type="text" id="search-input" placeholder="Marca, modelo, placa...">
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="filter-status">
+            <option value="">Todos</option>
+            <option value="DISPONIVEL">Disponível</option>
+            <option value="VENDIDO">Vendido</option>
+            <option value="RESERVADO">Reservado</option>
+            <option value="EM_REVISAO">Em Revisão</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Preço mín.</label>
+          <input type="number" id="filter-precomin" placeholder="R$ 0">
+        </div>
+        <div class="filter-group">
+          <label>Preço máx.</label>
+          <input type="number" id="filter-precomax" placeholder="R$ 999999">
+        </div>
+        <div class="filter-group">
+          <label>Ano mín.</label>
+          <input type="number" id="filter-anomin" placeholder="2000" style="width:100px">
+        </div>
+        <div class="filter-group">
+          <label>Ano máx.</label>
+          <input type="number" id="filter-anomax" placeholder="2025" style="width:100px">
+        </div>
+        <button class="btn btn-primary" onclick="filtrar()">Filtrar</button>
+        <button class="btn btn-ghost" onclick="limparFiltros()">Limpar</button>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div>
+            <div class="table-title">Lista de Veículos</div>
+          </div>
+          <div class="table-count" id="table-count"></div>
+        </div>
+        <div id="veiculos-body">
+          <div class="loading"><div class="spinner"></div>Carregando veículos...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SEÇÃO MARCAS ────────────────────────────────────── -->
+    <section class="section" id="sec-marcas">
+      <div class="section-title">Marcas</div>
+      <div class="section-sub">Fabricantes cadastrados no sistema</div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Lista de Marcas</div>
+          <div class="table-count" id="marcas-count"></div>
+        </div>
+        <div id="marcas-body">
+          <div class="loading"><div class="spinner"></div>Carregando marcas...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SEÇÃO MODELOS ───────────────────────────────────── -->
+    <section class="section" id="sec-modelos">
+      <div class="section-title">Modelos</div>
+      <div class="section-sub">Modelos de veículos por fabricante</div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Lista de Modelos</div>
+          <div class="table-count" id="modelos-count"></div>
+        </div>
+        <div id="modelos-body">
+          <div class="loading"><div class="spinner"></div>Carregando modelos...</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- MODAL NOVO/EDITAR VEÍCULO -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Novo Veículo</div>
+    <input type="hidden" id="veiculo-id">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Modelo</label>
+        <select id="form-modelo"></select>
+      </div>
+      <div class="form-group">
+        <label>Placa</label>
+        <input type="text" id="form-placa" placeholder="ABC1D23">
+      </div>
+      <div class="form-group">
+        <label>Ano</label>
+        <input type="number" id="form-ano" placeholder="2023">
+      </div>
+      <div class="form-group">
+        <label>Cor</label>
+        <input type="text" id="form-cor" placeholder="Prata">
+      </div>
+      <div class="form-group">
+        <label>Preço (R$)</label>
+        <input type="number" id="form-preco" placeholder="85000">
+      </div>
+      <div class="form-group">
+        <label>Quilometragem</label>
+        <input type="number" id="form-km" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="form-status">
+          <option value="DISPONIVEL">Disponível</option>
+          <option value="RESERVADO">Reservado</option>
+          <option value="EM_REVISAO">Em Revisão</option>
+          <option value="VENDIDO">Vendido</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarVeiculo()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+const API = 'http://localhost:8080/api';
+let todosVeiculos = [];
+let modelos = [];
+
+// ── NAVEGAÇÃO ──────────────────────────────────────────────
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('page-title').textContent =
+    name === 'veiculos' ? 'Veículos' : name === 'marcas' ? 'Marcas' : 'Modelos';
+  document.getElementById('btn-novo').textContent = '';
+  document.getElementById('btn-novo').innerHTML =
+    `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo ${name.charAt(0).toUpperCase() + name.slice(1,-1) + (name==='marcas'?'a':'o')}`;
+  if (name === 'marcas')  carregarMarcas();
+  if (name === 'modelos') carregarModelos();
+}
+
+// ── API STATUS ─────────────────────────────────────────────
+async function checkAPI() {
+  try {
+    const r = await fetch(API + '/veiculos', { signal: AbortSignal.timeout(3000) });
+    document.getElementById('api-dot').className = 'api-dot online';
+    document.getElementById('api-status-text').textContent = 'API online';
+  } catch {
+    document.getElementById('api-dot').className = 'api-dot offline';
+    document.getElementById('api-status-text').textContent = 'API offline';
+  }
+}
+
+// ── VEÍCULOS ───────────────────────────────────────────────
+async function carregarVeiculos() {
+  try {
+    const r = await fetch(API + '/veiculos');
+    todosVeiculos = await r.json();
+    renderVeiculos(todosVeiculos);
+    atualizarStats(todosVeiculos);
+  } catch (e) {
+    document.getElementById('veiculos-body').innerHTML =
+      `<div class="empty"><div class="empty-icon">⚠️</div>Não foi possível conectar à API.<br><small>Verifique se o Spring Boot está rodando.</small></div>`;
+  }
+}
+
+function renderVeiculos(lista) {
+  document.getElementById('table-count').textContent = lista.length + ' veículo(s)';
+  if (!lista.length) {
+    document.getElementById('veiculos-body').innerHTML =
+      `<div class="empty"><div class="empty-icon">🚗</div>Nenhum veículo encontrado.</div>`;
+    return;
+  }
+  document.getElementById('veiculos-body').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Veículo</th>
+          <th>Placa</th>
+          <th>Ano</th>
+          <th>Cor</th>
+          <th>Quilometragem</th>
+          <th>Preço</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${lista.map(v => `
+          <tr>
+            <td>
+              <div class="model-name">${v.modelo?.nome || '—'}</div>
+              <div class="brand-name">${v.modelo?.marca?.nome || '—'} · ${v.modelo?.categoria || '—'}</div>
+            </td>
+            <td><span class="brand-tag">${v.placa || '—'}</span></td>
+            <td>${v.ano}</td>
+            <td>${v.cor || '—'}</td>
+            <td>${(v.quilometragem || 0).toLocaleString('pt-BR')} km</td>
+            <td class="price">R$ ${v.preco?.toLocaleString('pt-BR', {minimumFractionDigits:0})}</td>
+            <td>${badgeStatus(v.status)}</td>
+            <td>
+              <div class="actions">
+                <button class="btn btn-ghost btn-sm" onclick="editarVeiculo(${v.id})">✏️</button>
+                ${v.status !== 'VENDIDO' ? `<button class="btn btn-ghost btn-sm" onclick="vender(${v.id})" title="Marcar como vendido">💰</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="deletarVeiculo(${v.id})">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function badgeStatus(s) {
+  const map = {
+    DISPONIVEL: ['badge-green',  '● Disponível'],
+    VENDIDO:    ['badge-red',    '● Vendido'],
+    RESERVADO:  ['badge-yellow', '● Reservado'],
+    EM_REVISAO: ['badge-blue',   '● Em Revisão'],
+  };
+  const [cls, label] = map[s] || ['badge-blue', s];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function atualizarStats(lista) {
+  document.getElementById('stat-total').textContent = lista.length;
+  const disp = lista.filter(v => v.status === 'DISPONIVEL');
+  const vend = lista.filter(v => v.status === 'VENDIDO');
+  document.getElementById('stat-disp').textContent = disp.length;
+  document.getElementById('stat-vend').textContent = vend.length;
+  const medio = disp.length ? disp.reduce((a,v) => a + v.preco, 0) / disp.length : 0;
+  document.getElementById('stat-medio').textContent =
+    medio ? 'R$ ' + Math.round(medio).toLocaleString('pt-BR') : '—';
+}
+
+// ── FILTROS ────────────────────────────────────────────────
+async function filtrar() {
+  const status   = document.getElementById('filter-status').value;
+  const precoMin = document.getElementById('filter-precomin').value;
+  const precoMax = document.getElementById('filter-precomax').value;
+  const anoMin   = document.getElementById('filter-anomin').value;
+  const anoMax   = document.getElementById('filter-anomax').value;
+  const search   = document.getElementById('search-input').value.toLowerCase();
+
+  let params = new URLSearchParams();
+  if (status)   params.append('status', status);
+  if (precoMin) params.append('precoMin', precoMin);
+  if (precoMax) params.append('precoMax', precoMax);
+  if (anoMin)   params.append('anoMin', anoMin);
+  if (anoMax)   params.append('anoMax', anoMax);
+
+  try {
+    const url = params.toString()
+      ? `${API}/veiculos/filtrar?${params}`
+      : `${API}/veiculos`;
+    const r = await fetch(url);
+    let lista = await r.json();
+    if (search) {
+      lista = lista.filter(v =>
+        v.modelo?.nome?.toLowerCase().includes(search) ||
+        v.modelo?.marca?.nome?.toLowerCase().includes(search) ||
+        v.placa?.toLowerCase().includes(search)
+      );
+    }
+    renderVeiculos(lista);
+  } catch { toast('Erro ao filtrar veículos', 'error'); }
+}
+
+function limparFiltros() {
+  ['filter-status','filter-precomin','filter-precomax','filter-anomin','filter-anomax','search-input']
+    .forEach(id => document.getElementById(id).value = '');
+  renderVeiculos(todosVeiculos);
+}
+
+document.getElementById('search-input').addEventListener('keyup', e => {
+  if (e.key === 'Enter') filtrar();
+});
+
+// ── MODAL ──────────────────────────────────────────────────
+async function abrirModal(id = null) {
+  document.getElementById('modal-title').textContent = id ? 'Editar Veículo' : 'Novo Veículo';
+  document.getElementById('veiculo-id').value = id || '';
+  if (!modelos.length) {
+    const r = await fetch(API + '/modelos');
+    modelos = await r.json();
+  }
+  const sel = document.getElementById('form-modelo');
+  sel.innerHTML = modelos.map(m =>
+    `<option value="${m.id}">${m.marca?.nome} ${m.nome}</option>`
+  ).join('');
+
+  if (id) {
+    const v = todosVeiculos.find(x => x.id === id);
+    if (v) {
+      sel.value = v.modelo?.id;
+      document.getElementById('form-placa').value  = v.placa || '';
+      document.getElementById('form-ano').value    = v.ano;
+      document.getElementById('form-cor').value    = v.cor || '';
+      document.getElementById('form-preco').value  = v.preco;
+      document.getElementById('form-km').value     = v.quilometragem || 0;
+      document.getElementById('form-status').value = v.status;
+    }
+  } else {
+    ['form-placa','form-ano','form-cor','form-preco','form-km'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('form-status').value = 'DISPONIVEL';
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function fecharModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModal();
+});
+
+async function salvarVeiculo() {
+  const id       = document.getElementById('veiculo-id').value;
+  const modeloId = document.getElementById('form-modelo').value;
+  const body = {
+    placa:         document.getElementById('form-placa').value || null,
+    ano:           parseInt(document.getElementById('form-ano').value),
+    cor:           document.getElementById('form-cor').value,
+    preco:         parseFloat(document.getElementById('form-preco').value),
+    quilometragem: parseInt(document.getElementById('form-km').value) || 0,
+    status:        document.getElementById('form-status').value || 'DISPONIVEL',
+    modelo:        { id: parseInt(document.getElementById('form-modelo').value) },
+  };
+  try {
+    if (id) {
+      await fetch(`${API}/veiculos/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      toast('Veículo atualizado com sucesso!', 'success');
+    } else {
+      await fetch(`${API}/veiculos/${modeloId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      toast('Veículo cadastrado com sucesso!', 'success');
+    }
+    fecharModal();
+    carregarVeiculos();
+  } catch { toast('Erro ao salvar veículo', 'error'); }
+}
+
+function editarVeiculo(id) { abrirModal(id); }
+
+async function vender(id) {
+  if (!confirm('Marcar este veículo como VENDIDO?')) return;
+  try {
+    await fetch(`${API}/veiculos/${id}/vender`, { method: 'PATCH' });
+    toast('Veículo marcado como vendido!', 'success');
+    carregarVeiculos();
+  } catch { toast('Erro ao atualizar status', 'error'); }
+}
+
+async function deletarVeiculo(id) {
+  if (!confirm('Tem certeza que deseja excluir este veículo?')) return;
+  try {
+    await fetch(`${API}/veiculos/${id}`, { method: 'DELETE' });
+    toast('Veículo removido.', 'success');
+    carregarVeiculos();
+  } catch { toast('Erro ao remover veículo', 'error'); }
+}
+
+// ── MARCAS ─────────────────────────────────────────────────
+async function carregarMarcas() {
+  try {
+    const r = await fetch(API + '/marcas');
+    const lista = await r.json();
+    document.getElementById('marcas-count').textContent = lista.length + ' marca(s)';
+    document.getElementById('marcas-body').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Nome</th><th>País de Origem</th></tr></thead>
+        <tbody>
+          ${lista.map(m => `
+            <tr>
+              <td style="color:var(--muted)">${m.id}</td>
+              <td><strong>${m.nome}</strong></td>
+              <td>${m.paisOrigem || '—'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch { document.getElementById('marcas-body').innerHTML = `<div class="empty">Erro ao carregar marcas.</div>`; }
+}
+
+// ── MODELOS ────────────────────────────────────────────────
+async function carregarModelos() {
+  try {
+    const r = await fetch(API + '/modelos');
+    const lista = await r.json();
+    document.getElementById('modelos-count').textContent = lista.length + ' modelo(s)';
+    document.getElementById('modelos-body').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Modelo</th><th>Marca</th><th>Categoria</th></tr></thead>
+        <tbody>
+          ${lista.map(m => `
+            <tr>
+              <td style="color:var(--muted)">${m.id}</td>
+              <td><strong>${m.nome}</strong></td>
+              <td><span class="brand-tag">${m.marca?.nome || '—'}</span></td>
+              <td>${m.categoria || '—'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch { document.getElementById('modelos-body').innerHTML = `<div class="empty">Erro ao carregar modelos.</div>`; }
+}
+
+// ── TOAST ──────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = (type === 'success' ? '✅' : '❌') + ' ' + msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── INIT ───────────────────────────────────────────────────
+checkAPI();
+carregarVeiculos();
+setInterval(checkAPI, 15000);
+</script>
+</body>
+</html>
